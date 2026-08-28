@@ -254,6 +254,14 @@
     line-height:1.6;
   }
 
+  .screensaver{
+    position:absolute; inset:0;
+    z-index: 13;
+    width:100%; height:100%;
+    background: #000;
+  }
+  .screensaver.hidden{ display:none; }
+
   /* ---------- control panel ---------- */
 
   .control-panel{
@@ -622,6 +630,8 @@
               <input type="file" id="fileInput" accept="video/*" multiple webkitdirectory>
             </label>
           </div>
+
+          <canvas id="screensaver" class="screensaver hidden"></canvas>
         </div>
         <div class="solid-state-label">Solid State AC·DC</div>
       </div>
@@ -682,6 +692,7 @@
   <div class="controls">
     <label class="toggle"><input type="checkbox" id="sfxToggle" checked> static sfx</label>
     <label class="toggle"><input type="checkbox" id="interstitialToggle" checked> dead channels</label>
+    <button id="screensaverBtn">Screensaver</button>
   </div>
 
   <div class="note">
@@ -732,6 +743,10 @@
   const closeSources = document.getElementById('closeSources');
   const sourcesList = document.getElementById('sourcesList');
   const sourceSearch = document.getElementById('sourceSearch');
+  const screensaverCanvas = document.getElementById('screensaver');
+  const screensaverBtn = document.getElementById('screensaverBtn');
+  const ssCtx = screensaverCanvas.getContext('2d');
+  const frame = document.getElementById('frame');
 
   // Where the manifest lives. Point this at your published Google Sheets CSV link
   // (File > Share > Publish to web > this sheet > CSV) once you have it.
@@ -1132,6 +1147,151 @@
     const m = String(fakeDate.min).padStart(2,'0');
     tsText.textContent = `REC · ${h}:${m} AM · ${fakeDate.mo} ${fakeDate.d} ${fakeDate.y}`;
   }
+
+  // ---------- screensaver ----------
+  let ssActive = false;
+  let ssRaf = null;
+  let ssEffectTimer = null;
+  let ssEffect = null;
+  let idleTimer = null;
+  let wasPlayingBeforeSS = false;
+  const IDLE_MS = 60000;
+
+  function resizeScreensaver(){
+    screensaverCanvas.width = frame.clientWidth;
+    screensaverCanvas.height = frame.clientHeight;
+  }
+  window.addEventListener('resize', resizeScreensaver);
+
+  function startScreensaver(){
+    if(ssActive) return;
+    ssActive = true;
+    resizeScreensaver();
+    screensaverCanvas.classList.remove('hidden');
+    wasPlayingBeforeSS = isPlaying;
+    if(isPlaying) video.pause();
+    pickEffect();
+    ssEffectTimer = setInterval(pickEffect, 16000);
+    runEffect();
+  }
+
+  function stopScreensaver(){
+    if(!ssActive) return;
+    ssActive = false;
+    screensaverCanvas.classList.add('hidden');
+    cancelAnimationFrame(ssRaf);
+    clearInterval(ssEffectTimer);
+    if(wasPlayingBeforeSS) video.play().catch(()=>{});
+  }
+
+  function pickEffect(){
+    const effects = ['mystify', 'starfield', 'bounce'];
+    let next = effects[Math.floor(Math.random()*effects.length)];
+    if(next === ssEffect && effects.length > 1){ next = effects[(effects.indexOf(next)+1) % effects.length]; }
+    ssEffect = next;
+    initEffect();
+  }
+
+  let mystifyShapes, starfieldStars, bounceState;
+
+  function initEffect(){
+    const w = screensaverCanvas.width, h = screensaverCanvas.height;
+    ssCtx.fillStyle = '#000';
+    ssCtx.fillRect(0, 0, w, h);
+
+    if(ssEffect === 'mystify'){
+      mystifyShapes = [0,1].map(() => ({
+        pts: Array.from({length: 4}, () => ({
+          x: Math.random()*w, y: Math.random()*h,
+          vx: (Math.random()-0.5)*4, vy: (Math.random()-0.5)*4
+        })),
+        hue: Math.random()*360
+      }));
+    }
+    if(ssEffect === 'starfield'){
+      starfieldStars = Array.from({length: 140}, () => ({
+        x: (Math.random()-0.5)*w, y: (Math.random()-0.5)*h, z: Math.random()*w
+      }));
+    }
+    if(ssEffect === 'bounce'){
+      bounceState = { x: 40, y: 40, vx: 2.2, vy: 1.8, hue: Math.random()*360 };
+    }
+  }
+
+  function drawMystify(){
+    const w = screensaverCanvas.width, h = screensaverCanvas.height;
+    ssCtx.fillStyle = 'rgba(0,0,0,0.08)';
+    ssCtx.fillRect(0, 0, w, h);
+    mystifyShapes.forEach(shape => {
+      shape.pts.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if(p.x < 0 || p.x > w) p.vx *= -1;
+        if(p.y < 0 || p.y > h) p.vy *= -1;
+      });
+      shape.hue = (shape.hue + 0.6) % 360;
+      ssCtx.strokeStyle = `hsl(${shape.hue}, 90%, 60%)`;
+      ssCtx.lineWidth = 1.5;
+      ssCtx.beginPath();
+      shape.pts.forEach((p, i) => i === 0 ? ssCtx.moveTo(p.x,p.y) : ssCtx.lineTo(p.x,p.y));
+      ssCtx.closePath();
+      ssCtx.stroke();
+    });
+  }
+
+  function drawStarfield(){
+    const w = screensaverCanvas.width, h = screensaverCanvas.height;
+    const cx = w/2, cy = h/2;
+    ssCtx.fillStyle = 'rgba(0,0,0,0.35)';
+    ssCtx.fillRect(0, 0, w, h);
+    ssCtx.fillStyle = '#fff';
+    starfieldStars.forEach(s => {
+      s.z -= 6;
+      if(s.z <= 0){ s.x = (Math.random()-0.5)*w; s.y = (Math.random()-0.5)*h; s.z = w; }
+      const k = 128 / s.z;
+      const px = cx + s.x * k, py = cy + s.y * k;
+      const size = Math.max(0.5, (1 - s.z / w) * 3);
+      if(px >= 0 && px <= w && py >= 0 && py <= h){
+        ssCtx.fillRect(px, py, size, size);
+      }
+    });
+  }
+
+  function drawBounce(){
+    const w = screensaverCanvas.width, h = screensaverCanvas.height;
+    ssCtx.fillStyle = '#000';
+    ssCtx.fillRect(0, 0, w, h);
+    const b = bounceState;
+    ssCtx.font = 'bold 22px Archivo, sans-serif';
+    const text = 'DEADAIR.CHANNEL';
+    const tw = ssCtx.measureText(text).width;
+    b.x += b.vx; b.y += b.vy;
+    if(b.x <= 0 || b.x + tw >= w){ b.vx *= -1; b.hue = Math.random()*360; }
+    if(b.y <= 22 || b.y >= h - 10){ b.vy *= -1; b.hue = Math.random()*360; }
+    ssCtx.fillStyle = `hsl(${b.hue}, 85%, 60%)`;
+    ssCtx.fillText(text, b.x, b.y);
+  }
+
+  function runEffect(){
+    if(!ssActive) return;
+    if(ssEffect === 'mystify') drawMystify();
+    else if(ssEffect === 'starfield') drawStarfield();
+    else if(ssEffect === 'bounce') drawBounce();
+    ssRaf = requestAnimationFrame(runEffect);
+  }
+
+  function resetIdleTimer(){
+    clearTimeout(idleTimer);
+    if(ssActive) stopScreensaver();
+    idleTimer = setTimeout(startScreensaver, IDLE_MS);
+  }
+
+  screensaverBtn.addEventListener('click', () => {
+    if(ssActive){ stopScreensaver(); resetIdleTimer(); }
+    else { clearTimeout(idleTimer); startScreensaver(); }
+  });
+
+  ['click','keydown','pointerdown'].forEach(evt => document.addEventListener(evt, resetIdleTimer));
+  resetIdleTimer();
 })();
 </script>
 </body>
