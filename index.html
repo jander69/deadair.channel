@@ -748,10 +748,10 @@
   const ssCtx = screensaverCanvas.getContext('2d');
   const frame = document.getElementById('frame');
 
-  // Where the manifest lives. Point this at your published Google Sheets CSV link
-  // (File > Share > Publish to web > this sheet > CSV) once you have it.
+  // Manifest is served through a Cloudflare Worker proxy, since Google's published-CSV
+  // endpoint doesn't send the CORS header browsers require for cross-origin fetch.
   // Expected columns, header row exact names (case-insensitive): id, file, title, credit, sourceUrl
-  const MANIFEST_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQblqzfnGyieB6tsiEeuvlDm4f0BtggtscjEdD2CBPfnhbVJ-_YCcLyJAI0Eq5cPD0WdfMxzMWQtQzi/pub?gid=0&single=true&output=csv';
+  const MANIFEST_URL = 'https://sheet-proxy.unbootable.workers.dev/';
   const CLIPS_BASE_URL = 'https://clips.deadair.channel/';
 
   let library = [];
