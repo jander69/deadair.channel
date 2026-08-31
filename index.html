@@ -26,6 +26,15 @@
     --chrome-lo: #8a8d94;
   }
 
+  body.cabinet-wood{
+    --shell-hi: #c99a68;
+    --shell-mid: #9c6a37;
+    --shell-lo: #6b4423;
+    --shell-shadow: #2e1c0f;
+    --chrome-hi: #e9d7ae;
+    --chrome-lo: #8a6a3c;
+  }
+
   *{ box-sizing: border-box; margin:0; padding:0; }
 
   body{
@@ -83,6 +92,15 @@
       inset 0 2px 0 rgba(255,255,255,0.5),
       inset 0 -10px 20px rgba(0,0,0,0.25);
     position: relative;
+    transition: background .3s ease;
+  }
+
+  body.cabinet-wood .tv{
+    background:
+      repeating-linear-gradient(93deg, rgba(0,0,0,0.09) 0px, rgba(0,0,0,0.09) 1px, transparent 1px, transparent 5px),
+      repeating-linear-gradient(93deg, rgba(255,224,180,0.06) 0px, rgba(255,224,180,0.06) 1px, transparent 1px, transparent 17px),
+      repeating-linear-gradient(87deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 2px, transparent 2px, transparent 23px),
+      linear-gradient(180deg, var(--shell-hi) 0%, var(--shell-mid) 45%, var(--shell-lo) 78%, var(--shell-shadow) 100%);
   }
 
   .tv-top-strip{
@@ -304,6 +322,7 @@
   }
 
   .push-btn-cap{
+    position: relative;
     width: 30px; height: 30px;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, var(--chrome-hi), var(--chrome-lo) 80%);
@@ -324,6 +343,15 @@
   .push-btn-cap::after{
     content:"";
     position:absolute;
+  }
+
+  .btn-icon{
+    position:absolute;
+    inset: 6px;
+    width: calc(100% - 12px);
+    height: calc(100% - 12px);
+    color: var(--shell-shadow);
+    pointer-events: none;
   }
 
   .push-btn-label{
@@ -491,6 +519,28 @@
   }
   .toggle input{ accent-color: var(--glitch-a); }
 
+  .toggle-label{
+    font-size: 11px; color: var(--dim);
+    letter-spacing: 1px; text-transform: uppercase;
+    align-self: center;
+  }
+  .skin-btn{
+    font-family: 'Space Mono', monospace;
+    background: var(--panel);
+    color: var(--dim);
+    border: 1px solid #333;
+    padding: 8px 16px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
+  .skin-btn.active{
+    color: #0a0a0a;
+    background: var(--glitch-b);
+    border-color: var(--glitch-b);
+    font-weight: 700;
+  }
+
   .note{
     margin-top: 34px;
     max-width: 620px;
@@ -608,6 +658,12 @@
   <h1>DEAD<span>AIR</span>.CHANNEL</h1>
   <p class="sub">A player built to feel like the fever-dream hour of overnight television. Turn the channel knob to jump the shuffle forward, ride the volume knob like a real dial, and watch it drift through static and dead air between clips.</p>
 
+  <div class="controls">
+    <span class="toggle-label">Cabinet:</span>
+    <button class="skin-btn active" id="skinSilver">Silver</button>
+    <button class="skin-btn" id="skinWood">Wood panel</button>
+  </div>
+
   <div class="tv">
     <div class="tv-top-strip"></div>
 
@@ -645,12 +701,28 @@
       <div class="control-panel">
         <div class="button-row">
           <div class="push-btn">
-            <div class="push-btn-cap" id="brightBtn"></div>
-            <span class="push-btn-label">Bright</span>
+            <div class="push-btn-cap" id="brightBtn" aria-label="Brightness">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="12" cy="12" r="4"/>
+                <line x1="12" y1="1.5" x2="12" y2="4.5"/>
+                <line x1="12" y1="19.5" x2="12" y2="22.5"/>
+                <line x1="1.5" y1="12" x2="4.5" y2="12"/>
+                <line x1="19.5" y1="12" x2="22.5" y2="12"/>
+                <line x1="4.4" y1="4.4" x2="6.5" y2="6.5"/>
+                <line x1="17.5" y1="17.5" x2="19.6" y2="19.6"/>
+                <line x1="4.4" y1="19.6" x2="6.5" y2="17.5"/>
+                <line x1="17.5" y1="6.5" x2="19.6" y2="4.4"/>
+              </svg>
+            </div>
           </div>
           <div class="push-btn">
-            <div class="push-btn-cap" id="powerBtn"></div>
-            <span class="push-btn-label">Power</span>
+            <div class="push-btn-cap" id="powerBtn" aria-label="Play or pause">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M4 3.5 L13 12 L4 20.5 Z"/>
+                <rect x="15" y="3.5" width="2.6" height="17"/>
+                <rect x="19.2" y="3.5" width="2.6" height="17"/>
+              </svg>
+            </div>
           </div>
         </div>
 
@@ -1166,6 +1238,19 @@
   Object.entries(vibeButtons).forEach(([mode, btn]) => btn.addEventListener('click', () => setVibe(mode)));
   setVibe('mixed');
 
+  const skinSilver = document.getElementById('skinSilver');
+  const skinWood = document.getElementById('skinWood');
+  skinSilver.addEventListener('click', () => {
+    document.body.classList.remove('cabinet-wood');
+    skinSilver.classList.add('active');
+    skinWood.classList.remove('active');
+  });
+  skinWood.addEventListener('click', () => {
+    document.body.classList.add('cabinet-wood');
+    skinWood.classList.add('active');
+    skinSilver.classList.remove('active');
+  });
+
   function startRuntime(){
     if(runtimeTimer) return;
     runtimeTimer = setInterval(() => {
@@ -1178,29 +1263,23 @@
   }
   function stopRuntime(){ clearInterval(runtimeTimer); runtimeTimer = null; }
 
-  let fakeDate = null;
   function seedTimestamp(){
-    const years = [1989, 1991, 1993, 1994, 1996, 1998, 2001];
-    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-    const y = years[Math.floor(Math.random()*years.length)];
-    const mo = months[Math.floor(Math.random()*months.length)];
-    const d = 1 + Math.floor(Math.random()*28);
-    const hour = 1 + Math.floor(Math.random()*4);
-    const min = Math.floor(Math.random()*60);
-    fakeDate = { y, mo, d, hour, min, sec: 0 };
     renderTimestamp();
   }
   function tickTimestamp(){
-    if(!fakeDate) return;
-    fakeDate.sec++;
-    if(fakeDate.sec >= 60){ fakeDate.sec = 0; fakeDate.min++; }
-    if(fakeDate.min >= 60){ fakeDate.min = 0; fakeDate.hour++; }
     renderTimestamp();
   }
   function renderTimestamp(){
-    const h = String(fakeDate.hour).padStart(2,'0');
-    const m = String(fakeDate.min).padStart(2,'0');
-    tsText.textContent = `REC · ${h}:${m} AM · ${fakeDate.mo} ${fakeDate.d} ${fakeDate.y}`;
+    const now = new Date();
+    const past = new Date(now.getTime());
+    past.setFullYear(now.getFullYear() - 20);
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    let hrs = past.getHours();
+    const ampm = hrs >= 12 ? 'PM' : 'AM';
+    hrs = hrs % 12; if(hrs === 0) hrs = 12;
+    const h = String(hrs).padStart(2,'0');
+    const m = String(past.getMinutes()).padStart(2,'0');
+    tsText.textContent = `REC · ${h}:${m} ${ampm} · ${months[past.getMonth()]} ${past.getDate()} ${past.getFullYear()}`;
   }
 
   // ---------- screensaver ----------
