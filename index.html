@@ -868,10 +868,6 @@
     <label class="toggle"><input type="checkbox" id="interstitialToggle" checked> dead channels</label>
   </div>
 
-  <div class="note">
-    <b>How it works.</b> Click the channel knob to skip forward through the shuffle, like turning a real dial. Drag the volume knob the same way. Power and Bright do what they sound like. The three lower buttons set the vibe — Cozy softens everything down, Chaotic turns it up, Mixed sits in between. Every so often the channel drops into a "please stand by" screen before cutting to the next clip. The clock in the corner mirrors real time, twenty years back.
-  </div>
-
   <div class="sources-overlay" id="sourcesOverlay">
     <div class="sources-panel">
       <div class="sources-header">
@@ -1174,11 +1170,11 @@
 
   function updateNowPlaying(clip){
     if(!clip){ nowPlayingEl.innerHTML = ''; return; }
-    const credit = escapeHtml(clip.credit || 'Unknown source');
+    const label = escapeHtml(clip.title || clip.credit || 'Unknown source');
     const link = clip.sourceUrl
       ? `<a href="${escapeHtml(clip.sourceUrl)}" target="_blank" rel="noopener">view source ↗</a>`
       : '';
-    nowPlayingEl.innerHTML = `now playing: <span class="np-credit">${credit}</span>${link}`;
+    nowPlayingEl.innerHTML = `now playing: <span class="np-credit">${label}</span>${link}`;
   }
 
   video.addEventListener('ended', () => { turnChannelKnob(); transitionToNext(); });
