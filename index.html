@@ -1047,7 +1047,7 @@
 
   function filteredLibrary(){
     if(vibeMode === 'mixed') return library;
-    return library.filter(c => !c.vibe || c.vibe === vibeMode);
+    return library.filter(c => !c.vibe || c.vibe === 'mixed' || c.vibe === vibeMode);
   }
 
   function refillBag(){ bag = shuffle(filteredLibrary()); clipsPlayedThisPass = 0; }
