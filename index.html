@@ -355,10 +355,12 @@
   }
 
   .push-btn-label{
-    font-size: 8px;
+    font-size: 9px;
     letter-spacing: 1px;
-    color: rgba(230,227,216,0.55);
+    color: var(--ink);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
     text-transform: uppercase;
+    font-weight: 700;
   }
 
   .brand-plate{
@@ -451,6 +453,8 @@
   @media (max-width: 640px){
     .tv-layout{ flex-direction: column; align-items:center; }
     .control-panel{ width: 100%; }
+    .push-btn-label{ font-size: 11px; letter-spacing: 0.5px; }
+    .knob-label{ font-size: 12px; }
   }
 
   /* ---------- HUD + controls ---------- */
@@ -686,11 +690,7 @@
           </div>
 
           <div class="empty-state" id="emptyState">
-            <p>No clips loaded yet.<br>Pick a folder of local video files to test the shuffle, or wire a hosted clip manifest in for a real deploy.</p>
-            <label class="file-btn primary">
-              Load clips
-              <input type="file" id="fileInput" accept="video/*" multiple webkitdirectory>
-            </label>
+            <p>No signal.</p>
           </div>
 
           <canvas id="screensaver" class="screensaver hidden"></canvas>
@@ -776,10 +776,6 @@
   <div class="controls">
     <button id="playPause" disabled>Play</button>
     <button id="sourcesBtn">Sources & credits</button>
-    <label class="file-btn">
-      Add local test clips
-      <input type="file" id="fileInput2" accept="video/*" multiple webkitdirectory>
-    </label>
   </div>
 
   <div class="controls">
@@ -789,9 +785,7 @@
   </div>
 
   <div class="note">
-    <b>How this works.</b> The channel knob is real — click it to turn the dial one notch and skip the shuffle forward, the same as flipping through channels 2 through 13. The volume knob is draggable, rotating like an actual potentiometer and setting the video's real volume as you turn it. Power toggles play/pause, and Bright cycles the picture through a few contrast/brightness looks. The three lower buttons switch the vibe — Chaotic, Cozy, and Mixed (the default) — reshaping the shuffle, the static intensity, and the color grading together. Clips shuffle-bag through your library so every clip plays once before any repeat, and roughly one transition in four drops into a "please stand by" dead-channel screen before cutting to the next clip (more or less often depending on vibe). The corner timestamp is a fake VCR clock seeded once per session, ticking forward like a recording nobody stopped.<br><br>
-    <b>Clip library.</b> The player reads its list from a Google Sheet published to the web as CSV — see <code>MANIFEST_URL</code> near the top of the script. Columns: <code>id, file, title, credit, sourceUrl, vibe</code>. <code>vibe</code> is optional — set it to <code>cozy</code> or <code>chaotic</code> to have a clip only appear in that mode, or leave it blank to appear in both. Each row's title/credit/link is what powers the "Sources & credits" panel. To remove a clip: delete its row from the sheet (Google republishes automatically within a few minutes) and delete the file from the bucket. If the sheet can't be reached (e.g. testing before it's published), the player falls back to the local file picker below so it still works as a demo.<br><br>
-    <b>Vibe modes.</b> Mixed plays everything as before. Cozy filters to clips tagged <code>cozy</code> (plus untagged ones), softens the static bursts, cuts dead-channel drops way down, and warms up the picture. Chaotic filters to clips tagged <code>chaotic</code> (plus untagged ones), and turns the static, dead-channel frequency, and color grading up past the default.
+    <b>How it works.</b> Click the channel knob to skip forward through the shuffle, like turning a real dial. Drag the volume knob the same way. Power and Bright do what they sound like. The three lower buttons set the vibe — Cozy softens everything down, Chaotic turns it up, Mixed sits in between. Every so often the channel drops into a "please stand by" screen before cutting to the next clip. The clock in the corner mirrors real time, twenty years back.
   </div>
 
   <div class="sources-overlay" id="sourcesOverlay">
@@ -811,8 +805,6 @@
 (function(){
   const video = document.getElementById('player');
   const emptyState = document.getElementById('emptyState');
-  const fileInput = document.getElementById('fileInput');
-  const fileInput2 = document.getElementById('fileInput2');
   const playPauseBtn = document.getElementById('playPause');
   const statusEl = document.getElementById('status');
   const clipcountEl = document.getElementById('clipcount');
@@ -1021,23 +1013,6 @@
     Object.keys(row).forEach(k => { norm[k.trim().toLowerCase()] = (row[k] || '').trim(); });
     return norm;
   }
-
-  function handleFiles(fileList){
-    const files = Array.from(fileList).filter(f => f.type.startsWith('video/'));
-    if(files.length === 0) return;
-    library = library.concat(files.map(f => ({
-      id: f.name,
-      url: URL.createObjectURL(f),
-      title: f.name,
-      credit: 'Local test file (not in manifest)',
-      sourceUrl: null
-    })));
-    refillBag();
-    markReady();
-  }
-
-  fileInput.addEventListener('change', e => handleFiles(e.target.files));
-  fileInput2.addEventListener('change', e => handleFiles(e.target.files));
 
   function renderSources(query){
     const q = (query || '').trim().toLowerCase();
