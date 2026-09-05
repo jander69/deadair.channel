@@ -149,8 +149,20 @@
     max-width: 540px;
     text-align: center;
     line-height: 1.6;
+    margin-bottom: 10px;
+  }
+
+  .vibe-explainer{
+    color: var(--dim);
+    font-size: 12px;
+    max-width: 560px;
+    text-align: center;
+    line-height: 1.6;
     margin-bottom: 30px;
   }
+  .ve-cozy{ color: var(--amber); font-weight: 700; }
+  .ve-chaotic{ color: var(--glitch-a); font-weight: 700; }
+  .ve-mixed{ color: #4a8f8a; font-weight: 700; }
 
   /* ---------- TV cabinet ---------- */
 
@@ -234,7 +246,7 @@
   video{
     width:100%; height:100%;
     display:block;
-    object-fit: contain;
+    object-fit: cover;
     background:#000;
     filter: saturate(0.82) contrast(1.08) brightness(0.96) sepia(0.06);
   }
@@ -429,6 +441,9 @@
     text-transform: uppercase;
     font-weight: 700;
   }
+  .push-btn-label.ve-cozy{ color: var(--amber); }
+  .push-btn-label.ve-chaotic{ color: var(--glitch-a); }
+  .push-btn-label.ve-mixed{ color: #4a8f8a; }
 
   .brand-plate{
     text-align:center;
@@ -747,6 +762,8 @@
   </div>
   <p class="sub">A player built to feel like the fever-dream hour of overnight television. Turn the channel knob to jump the shuffle forward, ride the volume knob like a real dial, and watch it drift through static and dead air between clips.</p>
 
+  <p class="vibe-explainer"><span class="ve-cozy">Cozy</span> softens the static and dead-air drops and warms up the picture for easy background viewing. <span class="ve-chaotic">Chaotic</span> turns all of that up for the full fever-dream effect. <span class="ve-mixed">Mixed</span> is a bit of both.</p>
+
   <div class="controls">
     <span class="toggle-label">Cabinet:</span>
     <button class="skin-btn active" id="skinSilver">Silver</button>
@@ -832,15 +849,15 @@
         <div class="button-row">
           <div class="push-btn">
             <div class="push-btn-cap" id="btnChaotic"></div>
-            <span class="push-btn-label">Chaotic</span>
+            <span class="push-btn-label ve-chaotic">Chaotic</span>
           </div>
           <div class="push-btn">
             <div class="push-btn-cap" id="btnCozy"></div>
-            <span class="push-btn-label">Cozy</span>
+            <span class="push-btn-label ve-cozy">Cozy</span>
           </div>
           <div class="push-btn">
             <div class="push-btn-cap active" id="btnNormal"></div>
-            <span class="push-btn-label">Mixed</span>
+            <span class="push-btn-label ve-mixed">Mixed</span>
           </div>
         </div>
 
