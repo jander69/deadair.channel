@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crop Browser — deadair.channel</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo:wght@700&display=swap');
+
+  :root{
+    --bg: #0a0a0a;
+    --panel: #111111;
+    --ink: #e8e6df;
+    --dim: #6b6a63;
+    --accent: #22e0c8;
+    --amber: #f2c14e;
+  }
+  *{ box-sizing: border-box; margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding: 32px 16px 60px;
+  }
+  h1{
+    font-family: 'Archivo', sans-serif;
+    font-size: 22px;
+    margin-bottom: 6px;
+  }
+  .sub{
+    color: var(--dim);
+    font-size: 13px;
+    max-width: 480px;
+    text-align:center;
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+  .status-bar{
+    font-size: 12px;
+    color: var(--dim);
+    margin-bottom: 18px;
+  }
+
+  .layout{
+    display:flex;
+    gap: 28px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 920px;
+    width: 100%;
+  }
+
+  .preview-col{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap: 12px;
+  }
+
+  .frame{
+    width: 400px;
+    aspect-ratio: 4/3;
+    background: #000;
+    border: 1px solid #2a2a2a;
+    overflow: hidden;
+    position: relative;
+  }
+  .frame video{
+    width:100%; height:100%;
+    display:block;
+    background:#000;
+  }
+  .empty-msg{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--dim);
+    font-size: 12px;
+    text-align:center;
+    padding: 20px;
+  }
+
+  .nav-row{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+  }
+  .nav-btn{
+    background: var(--panel);
+    border: 1px solid #333;
+    color: var(--ink);
+    padding: 10px 16px;
+    cursor:pointer;
+    font-family:'Space Mono', monospace;
+    font-size: 13px;
+  }
+  .nav-btn:hover{ border-color: var(--accent); color: var(--accent); }
+  .nav-btn:disabled{ opacity:0.3; cursor:not-allowed; }
+  .nav-counter{ font-size: 12px; color: var(--dim); min-width: 70px; text-align:center; }
+
+  .clip-info{
+    text-align:center;
+    max-width: 400px;
+  }
+  .clip-title{ font-size: 14px; color: var(--ink); font-weight:700; margin-bottom: 2px; }
+  .clip-credit{ font-size: 11px; color: var(--dim); }
+
+  .jump-row{
+    width: 400px;
+    display:flex;
+    gap: 8px;
+  }
+  .jump-row select{
+    flex:1;
+    background: var(--panel);
+    border: 1px solid #333;
+    color: var(--ink);
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    padding: 8px;
+  }
+
+  .controls-col{
+    width: 320px;
+    display:flex;
+    flex-direction:column;
+    gap: 20px;
+  }
+
+  .group{
+    background: var(--panel);
+    border: 1px solid #262626;
+    padding: 14px;
+  }
+  .group-label{
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .fit-row{ display:flex; gap: 8px; }
+  .fit-btn{
+    flex:1;
+    background: #0d0d0d;
+    border: 1px solid #333;
+    color: var(--dim);
+    padding: 10px;
+    cursor:pointer;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+  }
+  .fit-btn.active{
+    color: #0a0a0a;
+    background: var(--accent);
+    border-color: var(--accent);
+    font-weight:700;
+  }
+
+  .slider-row{ margin-bottom: 12px; }
+  .slider-row:last-child{ margin-bottom: 0; }
+  .slider-row label{
+    display:flex;
+    justify-content:space-between;
+    font-size: 12px;
+    color: var(--dim);
+    margin-bottom: 6px;
+  }
+  .slider-row output{ color: var(--ink); }
+  .slider-row input[type=range]{
+    width: 100%;
+    accent-color: var(--accent);
+  }
+
+  .preset-row{ display:flex; gap:6px; flex-wrap:wrap; margin-top: 10px; }
+  .preset-btn{
+    background:#0d0d0d;
+    border:1px solid #333;
+    color: var(--dim);
+    font-size: 11px;
+    padding: 6px 10px;
+    cursor:pointer;
+    font-family:'Space Mono', monospace;
+  }
+  .preset-btn:hover{ border-color: var(--accent); color: var(--accent); }
+
+  .output{
+    background: #0d0d0d;
+    border: 1px solid var(--accent);
+    padding: 14px;
+    font-size: 13px;
+  }
+  .output .row{ display:flex; justify-content:space-between; margin-bottom:6px; }
+  .output .row:last-child{ margin-bottom:0; }
+  .output .k{ color: var(--dim); }
+  .output .v{ color: var(--amber); font-weight:700; }
+
+  .copy-btn{
+    margin-top: 10px;
+    width:100%;
+    background: var(--accent);
+    color:#0a0a0a;
+    border:none;
+    padding: 10px;
+    font-weight:700;
+    font-family:'Space Mono', monospace;
+    cursor:pointer;
+    font-size: 12px;
+  }
+
+  .flag-row{ margin-top: 10px; }
+  .flag-btn{
+    width:100%;
+    background: #0d0d0d;
+    border: 1px solid #333;
+    color: var(--dim);
+    padding: 8px;
+    cursor:pointer;
+    font-family:'Space Mono', monospace;
+    font-size: 11px;
+  }
+  .flag-btn.flagged{ border-color: var(--amber); color: var(--amber); }
+</style>
+</head>
+<body>
+
+  <h1>Crop Browser</h1>
+  <p class="sub">Steps through every clip in your live manifest so you can flip back and forth and decide what needs a crop adjustment.</p>
+  <div class="status-bar" id="statusBar">Loading manifest…</div>
+
+  <div class="layout">
+    <div class="preview-col">
+      <div class="frame" id="frame">
+        <video id="video" muted loop playsinline></video>
+        <div class="empty-msg" id="emptyMsg">Loading…</div>
+      </div>
+
+      <div class="nav-row">
+        <button class="nav-btn" id="prevBtn" disabled>&larr; Prev</button>
+        <span class="nav-counter" id="navCounter">--/--</span>
+        <button class="nav-btn" id="nextBtn" disabled>Next &rarr;</button>
+      </div>
+
+      <div class="clip-info">
+        <div class="clip-title" id="clipTitle">—</div>
+        <div class="clip-credit" id="clipCredit">—</div>
+      </div>
+
+      <div class="jump-row">
+        <select id="jumpSelect"><option>Loading…</option></select>
+      </div>
+    </div>
+
+    <div class="controls-col">
+      <div class="group">
+        <div class="group-label">Fit</div>
+        <div class="fit-row">
+          <button class="fit-btn active" id="fitCover">cover</button>
+          <button class="fit-btn" id="fitContain">contain</button>
+        </div>
+      </div>
+
+      <div class="group" id="positionGroup">
+        <div class="group-label">Position (only matters for "cover")</div>
+        <div class="slider-row">
+          <label>Horizontal <output id="xOut">50%</output></label>
+          <input type="range" id="xSlider" min="0" max="100" value="50">
+        </div>
+        <div class="slider-row">
+          <label>Vertical <output id="yOut">50%</output></label>
+          <input type="range" id="ySlider" min="0" max="100" value="50">
+        </div>
+        <div class="preset-row">
+          <button class="preset-btn" data-x="50" data-y="0">Top</button>
+          <button class="preset-btn" data-x="50" data-y="50">Center</button>
+          <button class="preset-btn" data-x="50" data-y="100">Bottom</button>
+          <button class="preset-btn" data-x="0" data-y="50">Left</button>
+          <button class="preset-btn" data-x="100" data-y="50">Right</button>
+        </div>
+      </div>
+
+      <div class="output">
+        <div class="row"><span class="k">id</span><span class="v" id="outId">—</span></div>
+        <div class="row"><span class="k">fit</span><span class="v" id="outFit">cover</span></div>
+        <div class="row"><span class="k">position</span><span class="v" id="outPosition">50% 50%</span></div>
+        <button class="copy-btn" id="copyBtn">Copy id + fit + position</button>
+        <div class="flag-row">
+          <button class="flag-btn" id="flagBtn">Mark this clip as needing a fix</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  // Same manifest source the live site uses.
+  const MANIFEST_URL = 'https://sheet-proxy.unbootable.workers.dev/';
+  const CLIPS_BASE_URL = 'https://clips.deadair.channel/';
+
+  const video = document.getElementById('video');
+  const emptyMsg = document.getElementById('emptyMsg');
+  const statusBar = document.getElementById('statusBar');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const navCounter = document.getElementById('navCounter');
+  const clipTitle = document.getElementById('clipTitle');
+  const clipCredit = document.getElementById('clipCredit');
+  const jumpSelect = document.getElementById('jumpSelect');
+  const fitCover = document.getElementById('fitCover');
+  const fitContain = document.getElementById('fitContain');
+  const xSlider = document.getElementById('xSlider');
+  const ySlider = document.getElementById('ySlider');
+  const xOut = document.getElementById('xOut');
+  const yOut = document.getElementById('yOut');
+  const outId = document.getElementById('outId');
+  const outFit = document.getElementById('outFit');
+  const outPosition = document.getElementById('outPosition');
+  const positionGroup = document.getElementById('positionGroup');
+  const copyBtn = document.getElementById('copyBtn');
+  const flagBtn = document.getElementById('flagBtn');
+
+  let clips = [];
+  let index = 0;
+  let fit = 'cover';
+  const flagged = new Set();
+
+  function normalizeRow(row){
+    const norm = {};
+    Object.keys(row).forEach(k => { norm[k.trim().toLowerCase()] = (row[k] || '').trim(); });
+    return norm;
+  }
+
+  async function loadManifest(){
+    try{
+      const res = await fetch(MANIFEST_URL, { cache: 'no-store' });
+      if(!res.ok) throw new Error('manifest not reachable');
+      const csvText = await res.text();
+      const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+      const rows = parsed.data.map(normalizeRow).filter(r => r.file);
+      if(rows.length === 0) throw new Error('manifest empty');
+
+      clips = rows.map(r => ({
+        id: r.id || r.file,
+        url: /^https?:\/\//.test(r.file) ? r.file : CLIPS_BASE_URL + r.file,
+        title: r.title || r.file,
+        credit: r.credit || 'Unknown source',
+        fit: (r.fit || 'cover').toLowerCase(),
+        position: r.position || '50% 50%'
+      }));
+
+      jumpSelect.innerHTML = clips.map((c, i) => `<option value="${i}">${escapeHtml(c.title)}</option>`).join('');
+      statusBar.textContent = `${clips.length} clips loaded from manifest`;
+      prevBtn.disabled = false;
+      nextBtn.disabled = false;
+      goTo(0);
+    } catch(err){
+      statusBar.textContent = 'Could not load manifest — check MANIFEST_URL or your connection.';
+      emptyMsg.textContent = 'Manifest unavailable.';
+    }
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function goTo(i){
+    if(i < 0 || i >= clips.length) return;
+    index = i;
+    const clip = clips[index];
+    video.src = clip.url;
+    video.play().catch(()=>{});
+    emptyMsg.style.display = 'none';
+
+    clipTitle.textContent = clip.title;
+    clipCredit.textContent = clip.credit;
+    navCounter.textContent = `${index + 1}/${clips.length}`;
+    jumpSelect.value = index;
+    outId.textContent = clip.id;
+
+    fit = clip.fit === 'contain' ? 'contain' : 'cover';
+    fitCover.classList.toggle('active', fit === 'cover');
+    fitContain.classList.toggle('active', fit === 'contain');
+
+    const posParts = clip.position.split(' ').map(p => parseInt(p) || 50);
+    xSlider.value = posParts[0] ?? 50;
+    ySlider.value = posParts[1] ?? 50;
+    xOut.textContent = xSlider.value + '%';
+    yOut.textContent = ySlider.value + '%';
+
+    flagBtn.classList.toggle('flagged', flagged.has(clip.id));
+    flagBtn.textContent = flagged.has(clip.id) ? 'Flagged — click to unflag' : 'Mark this clip as needing a fix';
+
+    applyStyles();
+  }
+
+  function applyStyles(){
+    video.style.objectFit = fit;
+    video.style.objectPosition = `${xSlider.value}% ${ySlider.value}%`;
+    outFit.textContent = fit;
+    outPosition.textContent = `${xSlider.value}% ${ySlider.value}%`;
+    positionGroup.style.opacity = fit === 'cover' ? '1' : '0.4';
+  }
+
+  prevBtn.addEventListener('click', () => goTo(index - 1));
+  nextBtn.addEventListener('click', () => goTo(index + 1));
+  jumpSelect.addEventListener('change', () => goTo(parseInt(jumpSelect.value)));
+
+  fitCover.addEventListener('click', () => { fit = 'cover'; fitCover.classList.add('active'); fitContain.classList.remove('active'); applyStyles(); });
+  fitContain.addEventListener('click', () => { fit = 'contain'; fitContain.classList.add('active'); fitCover.classList.remove('active'); applyStyles(); });
+
+  [xSlider, ySlider].forEach(slider => {
+    slider.addEventListener('input', () => {
+      xOut.textContent = xSlider.value + '%';
+      yOut.textContent = ySlider.value + '%';
+      applyStyles();
+    });
+  });
+
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      xSlider.value = btn.dataset.x;
+      ySlider.value = btn.dataset.y;
+      xOut.textContent = btn.dataset.x + '%';
+      yOut.textContent = btn.dataset.y + '%';
+      applyStyles();
+    });
+  });
+
+  copyBtn.addEventListener('click', () => {
+    const clip = clips[index];
+    const text = `${clip.id}\t${fit}\t${xSlider.value}% ${ySlider.value}%`;
+    navigator.clipboard.writeText(text).then(() => {
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => copyBtn.textContent = 'Copy id + fit + position', 1200);
+    });
+  });
+
+  flagBtn.addEventListener('click', () => {
+    const id = clips[index].id;
+    if(flagged.has(id)) flagged.delete(id); else flagged.add(id);
+    flagBtn.classList.toggle('flagged', flagged.has(id));
+    flagBtn.textContent = flagged.has(id) ? 'Flagged — click to unflag' : 'Mark this clip as needing a fix';
+  });
+
+  document.addEventListener('keydown', e => {
+    if(e.key === 'ArrowLeft') goTo(index - 1);
+    if(e.key === 'ArrowRight') goTo(index + 1);
+  });
+
+  loadManifest();
+})();
+</script>
+</body>
+</html>
