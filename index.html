@@ -1638,8 +1638,8 @@
   // Reporting goes through an Apps Script Web App (fire-and-forget, no response needed).
   // Reading the running total back goes through a small CORS-proxy Worker, same pattern
   // as MANIFEST_URL above, since Apps Script's GET responses don't include CORS headers.
-  const WATCHTIME_REPORT_URL = 'https://script.google.com/macros/s/REPLACE_WITH_YOUR_WATCHTIME_WEBAPP_URL/exec';
-  const WATCHTIME_TOTAL_URL = 'https://REPLACE_WITH_YOUR_WATCHTIME_PROXY.workers.dev/';
+  const WATCHTIME_REPORT_URL = 'https://script.google.com/macros/s/AKfycbwYnkoDR-_uBA0A6iDd5tAJPl3l3KKHqXFiicWbKlq6RHVIGeZ0ncdZLAyryU0t1jD-0w/exec';
+  const WATCHTIME_TOTAL_URL = 'https://lucky-forest-ce21.unbootable.workers.dev/';
 
   let pendingWatchSeconds = 0;
   let displayedTotalSeconds = null;
