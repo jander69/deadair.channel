@@ -299,6 +299,14 @@
     flex-direction: column;
   }
   .interstitial.show{ display:flex; }
+  .off-air-logo{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit: contain;
+    background: #000;
+  }
+  .off-air-logo.hidden{ display:none; }
+
   .bars{ flex: 1; display:flex; }
   .bars div{ flex:1; }
   .b1{ background:#c0c0c0; } .b2{ background:#c0c000; } .b3{ background:#00c0c0; }
@@ -562,17 +570,49 @@
   }
   #clipcount{ color: var(--amber); }
 
-  .now-playing{
+  .now-playing-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
     width:100%;
     max-width: 820px;
     margin-top: 8px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .now-playing{
     font-size: 12px;
     color: var(--dim);
     min-height: 18px;
   }
   .now-playing .np-credit{ color: var(--ink); font-weight: 700; }
+  .ad-badge{
+    background: var(--amber);
+    color: #0a0a0a;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    letter-spacing: 1px;
+  }
   .now-playing a{ color: var(--glitch-b); text-decoration: none; margin-left: 6px; }
   .now-playing a:hover{ text-decoration: underline; }
+
+  .vote-row{ display:flex; align-items:center; gap: 8px; }
+  .vote-btn{
+    background: var(--panel);
+    border: 1px solid #333;
+    font-size: 14px;
+    padding: 6px 10px;
+    cursor: pointer;
+    filter: grayscale(1);
+    opacity: 0.6;
+    transition: transform .08s ease, opacity .15s ease, filter .15s ease;
+  }
+  .vote-btn:hover:not(:disabled){ filter: grayscale(0); opacity: 1; }
+  .vote-btn:active:not(:disabled){ transform: translateY(1px); }
+  .vote-btn:disabled{ cursor: default; }
+  .vote-btn.voted{ filter: grayscale(0); opacity: 1; border-color: var(--glitch-b); }
+  .vote-status{ font-size: 11px; color: var(--dim); }
 
   .controls{
     display:flex;
@@ -751,6 +791,49 @@
     text-align:center;
     padding: 20px 0;
   }
+
+  .suggest-form{
+    display:flex;
+    flex-direction:column;
+    gap: 10px;
+    padding: 0 16px 16px;
+  }
+  .suggest-form input[type="text"],
+  .suggest-form textarea{
+    background: #0d0d0d;
+    border: 1px solid #2a2a2a;
+    color: var(--ink);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    padding: 10px;
+    resize: vertical;
+  }
+  .suggest-form input[type="text"]:focus,
+  .suggest-form textarea:focus{ outline:none; border-color: var(--glitch-b); }
+  .suggest-form .hp{
+    position:absolute;
+    left:-9999px;
+    width:1px; height:1px;
+    opacity:0;
+  }
+  .suggest-form button{
+    background: var(--glitch-b);
+    color:#0a0a0a;
+    border:none;
+    padding: 12px;
+    font-weight:700;
+    font-family:'Space Mono', monospace;
+    cursor:pointer;
+    font-size: 12px;
+  }
+  .suggest-form button:disabled{ opacity:0.5; cursor:not-allowed; }
+  .suggest-status{
+    font-size: 12px;
+    text-align:center;
+    min-height: 18px;
+  }
+  .suggest-status.ok{ color: var(--glitch-b); }
+  .suggest-status.err{ color: var(--glitch-a); }
 </style>
 </head>
 <body>
@@ -785,10 +868,11 @@
           <div class="timestamp hidden" id="timestamp"><span class="rec"></span><span id="tsText">REC · 00:00 AM</span></div>
 
           <div class="interstitial" id="interstitial">
-            <div class="bars">
+            <img class="off-air-logo hidden" id="offAirLogo" alt="Off air">
+            <div class="bars" id="barsScreen">
               <div class="b1"></div><div class="b2"></div><div class="b3"></div><div class="b4"></div><div class="b5"></div><div class="b6"></div><div class="b7"></div>
             </div>
-            <div class="standby">PLEASE STAND BY<span>_</span></div>
+            <div class="standby"><span id="standbyText">PLEASE STAND BY</span><span>_</span></div>
           </div>
 
           <div class="empty-state" id="emptyState">
@@ -871,13 +955,22 @@
     <span class="tag">status: <span id="status">idle</span></span>
     <span class="tag">clip <span id="clipcount">--/--</span></span>
     <span class="tag">runtime <span id="runtime">00:00</span></span>
+    <span class="tag">total watched: <span id="totalWatch">—</span></span>
   </div>
 
-  <div class="now-playing" id="nowPlaying"></div>
+  <div class="now-playing-row">
+    <div class="now-playing" id="nowPlaying"></div>
+    <div class="vote-row">
+      <button class="vote-btn" id="thumbsUp" title="Good clip" disabled>👍</button>
+      <button class="vote-btn" id="thumbsDown" title="Not it" disabled>👎</button>
+      <span class="vote-status" id="voteStatus"></span>
+    </div>
+  </div>
 
   <div class="controls">
     <button id="playPause" disabled>Play</button>
     <button id="sourcesBtn">Sources & credits</button>
+    <button id="suggestBtn">Suggest a clip</button>
   </div>
 
   <div class="controls">
@@ -897,6 +990,23 @@
     </div>
   </div>
 
+  <div class="sources-overlay" id="suggestOverlay">
+    <div class="sources-panel">
+      <div class="sources-header">
+        <span>SUGGEST A CLIP</span>
+        <button id="closeSuggest">&times;</button>
+      </div>
+      <p class="sources-note">Found something that belongs on this channel? Drop the link below. Suggestions go into a holding list for review — nothing gets added to the shuffle automatically.</p>
+      <form id="suggestForm" class="suggest-form">
+        <input type="text" id="suggestUrl" placeholder="Link to the clip (Instagram, YouTube, etc.)" required>
+        <textarea id="suggestNote" placeholder="Anything worth knowing about it? (optional)" rows="3"></textarea>
+        <input type="text" id="suggestHoneypot" class="hp" tabindex="-1" autocomplete="off">
+        <button type="submit" id="suggestSubmit">Submit suggestion</button>
+        <div class="suggest-status" id="suggestStatus"></div>
+      </form>
+    </div>
+  </div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
 (function(){
@@ -906,10 +1016,27 @@
   const statusEl = document.getElementById('status');
   const clipcountEl = document.getElementById('clipcount');
   const nowPlayingEl = document.getElementById('nowPlaying');
+  const standbyText = document.getElementById('standbyText');
+  const thumbsUp = document.getElementById('thumbsUp');
+  const thumbsDown = document.getElementById('thumbsDown');
+  const voteStatus = document.getElementById('voteStatus');
+  let currentClip = null;
   const runtimeEl = document.getElementById('runtime');
+  const totalWatchEl = document.getElementById('totalWatch');
   const noiseCanvas = document.getElementById('noise');
   const noiseCtx = noiseCanvas.getContext('2d');
   const interstitialEl = document.getElementById('interstitial');
+  const barsScreen = document.getElementById('barsScreen');
+  const offAirLogo = document.getElementById('offAirLogo');
+
+  // Set this once you have your off-air card ready (e.g. from your R2 bucket).
+  // Leave blank to keep the default SMPTE color-bars screen.
+  const OFF_AIR_LOGO_URL = '';
+  if(OFF_AIR_LOGO_URL){
+    offAirLogo.src = OFF_AIR_LOGO_URL;
+    offAirLogo.onload = () => { offAirLogo.classList.remove('hidden'); barsScreen.classList.add('hidden'); };
+    offAirLogo.onerror = () => { offAirLogo.classList.add('hidden'); barsScreen.classList.remove('hidden'); };
+  }
   const timestampEl = document.getElementById('timestamp');
   const tsText = document.getElementById('tsText');
   const sfxToggle = document.getElementById('sfxToggle');
@@ -930,6 +1057,15 @@
   const closeSources = document.getElementById('closeSources');
   const sourcesList = document.getElementById('sourcesList');
   const sourceSearch = document.getElementById('sourceSearch');
+  const suggestBtn = document.getElementById('suggestBtn');
+  const suggestOverlay = document.getElementById('suggestOverlay');
+  const closeSuggest = document.getElementById('closeSuggest');
+  const suggestForm = document.getElementById('suggestForm');
+  const suggestUrl = document.getElementById('suggestUrl');
+  const suggestNote = document.getElementById('suggestNote');
+  const suggestHoneypot = document.getElementById('suggestHoneypot');
+  const suggestSubmit = document.getElementById('suggestSubmit');
+  const suggestStatus = document.getElementById('suggestStatus');
 
   // Manifest is served through a Cloudflare Worker proxy, since Google's published-CSV
   // endpoint doesn't send the CORS header browsers require for cross-origin fetch.
@@ -939,6 +1075,9 @@
 
   let library = [];
   let bag = [];
+  let adBag = [];
+  let clipsSinceAd = 0;
+  const AD_INTERVAL = 4; // play an ad after this many regular clips
   let clipsPlayedThisPass = 0;
   let isPlaying = false;
   let runtimeSeconds = 0;
@@ -1062,11 +1201,19 @@
   let vibeMode = 'mixed';
 
   function filteredLibrary(){
-    if(vibeMode === 'mixed') return library;
-    return library.filter(c => !c.vibe || c.vibe === 'mixed' || c.vibe === vibeMode);
+    const contentOnly = library.filter(c => c.type !== 'ad');
+    if(vibeMode === 'mixed') return contentOnly;
+    return contentOnly.filter(c => !c.vibe || c.vibe === 'mixed' || c.vibe === vibeMode);
+  }
+
+  function filteredAdLibrary(){
+    const adsOnly = library.filter(c => c.type === 'ad');
+    if(vibeMode === 'mixed') return adsOnly;
+    return adsOnly.filter(c => !c.vibe || c.vibe === 'mixed' || c.vibe === vibeMode);
   }
 
   function refillBag(){ bag = shuffle(filteredLibrary()); clipsPlayedThisPass = 0; }
+  function refillAdBag(){ adBag = shuffle(filteredAdLibrary()); }
 
   function markReady(){
     emptyState.style.display = 'none';
@@ -1090,9 +1237,13 @@
         title: r.title || r.file,
         credit: r.credit || 'Unknown source',
         sourceUrl: r.sourceurl || null,
-        vibe: (r.vibe || '').toLowerCase()
+        vibe: (r.vibe || '').toLowerCase(),
+        fit: (r.fit || 'cover').toLowerCase(),
+        position: r.position || 'center',
+        type: (r.type || '').toLowerCase()
       }));
       refillBag();
+      refillAdBag();
       markReady();
     } catch(err){
       // Manifest not reachable yet (e.g. sheet not published, DNS still propagating) —
@@ -1143,20 +1294,93 @@
   sourcesOverlay.addEventListener('click', e => { if(e.target === sourcesOverlay) sourcesOverlay.classList.remove('show'); });
   sourceSearch.addEventListener('input', () => renderSources(sourceSearch.value));
 
+  // Suggestions go to a separate, isolated Google Sheet for manual review —
+  // never into the live manifest. Replace with your own Apps Script Web App URL.
+  const SUGGEST_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzdNs3Xo4k8SXNDLV6C7Z3xoLiMo4YR0GPCsLC2KFP1NlgbQUuqj8LjSSmdhNqoUdfEXQ/exec';
+  const SUGGEST_COOLDOWN_MS = 60000;
+
+  suggestBtn.addEventListener('click', () => {
+    suggestStatus.textContent = '';
+    suggestStatus.className = 'suggest-status';
+    suggestOverlay.classList.add('show');
+  });
+  closeSuggest.addEventListener('click', () => suggestOverlay.classList.remove('show'));
+  suggestOverlay.addEventListener('click', e => { if(e.target === suggestOverlay) suggestOverlay.classList.remove('show'); });
+
+  suggestForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Honeypot — real visitors never fill this in; bots often do.
+    if(suggestHoneypot.value){
+      suggestStatus.textContent = 'Thanks!';
+      suggestStatus.className = 'suggest-status ok';
+      suggestForm.reset();
+      return;
+    }
+
+    const url = suggestUrl.value.trim();
+    if(!/^https?:\/\//i.test(url)){
+      suggestStatus.textContent = 'That doesn\'t look like a valid link.';
+      suggestStatus.className = 'suggest-status err';
+      return;
+    }
+
+    const lastSubmit = parseInt(localStorage.getItem('deadair_last_suggest') || '0', 10);
+    if(Date.now() - lastSubmit < SUGGEST_COOLDOWN_MS){
+      suggestStatus.textContent = 'One at a time — try again in a moment.';
+      suggestStatus.className = 'suggest-status err';
+      return;
+    }
+
+    suggestSubmit.disabled = true;
+    suggestStatus.textContent = 'Sending...';
+    suggestStatus.className = 'suggest-status';
+
+    try{
+      // no-cors: we can't read the response, but the request still reaches the sheet.
+      await fetch(SUGGEST_WEBAPP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ url, note: suggestNote.value.trim() })
+      });
+      localStorage.setItem('deadair_last_suggest', String(Date.now()));
+      suggestStatus.textContent = 'Thanks — added to the review list.';
+      suggestStatus.className = 'suggest-status ok';
+      suggestForm.reset();
+    } catch(err){
+      suggestStatus.textContent = 'Something went wrong — try again later.';
+      suggestStatus.className = 'suggest-status err';
+    } finally {
+      suggestSubmit.disabled = false;
+    }
+  });
+
   function wait(ms){ return new Promise(res => setTimeout(res, ms)); }
 
   async function transitionToNext(){
     if(busy || filteredLibrary().length === 0) return;
     busy = true;
 
-    if(bag.length === 0) refillBag();
-    const next = bag.pop();
-    clipsPlayedThisPass++;
+    const adsAvailable = filteredAdLibrary().length > 0;
+    const playingAd = adsAvailable && clipsSinceAd >= AD_INTERVAL;
+
+    let next;
+    if(playingAd){
+      if(adBag.length === 0) refillAdBag();
+      next = adBag.pop();
+      clipsSinceAd = 0;
+    } else {
+      if(bag.length === 0) refillBag();
+      next = bag.pop();
+      clipsPlayedThisPass++;
+      clipsSinceAd++;
+    }
 
     const interstitialChance = vibeMode === 'cozy' ? 0.06 : vibeMode === 'chaotic' ? 0.4 : 0.25;
     const staticMs = vibeMode === 'cozy' ? 160 : vibeMode === 'chaotic' ? 450 : 350;
     const staticOpacity = vibeMode === 'cozy' ? '0.35' : '0.85';
-    const doInterstitial = interstitialToggle.checked && Math.random() < interstitialChance;
+    const doInterstitial = playingAd || (interstitialToggle.checked && Math.random() < interstitialChance);
 
     noiseCanvas.style.opacity = staticOpacity;
     statusEl.textContent = 'searching signal';
@@ -1164,9 +1388,10 @@
     await wait(staticMs);
 
     if(doInterstitial){
+      standbyText.textContent = playingAd ? 'STATION BREAK' : 'PLEASE STAND BY';
       interstitialEl.classList.add('show');
       noiseCanvas.style.opacity = '0.06';
-      statusEl.textContent = 'dead channel';
+      statusEl.textContent = playingAd ? 'station break' : 'dead channel';
       playHum(1400);
       await wait(1400);
       noiseCanvas.style.opacity = staticOpacity;
@@ -1176,6 +1401,8 @@
     }
 
     video.src = next.url;
+    video.style.objectFit = next.fit || 'cover';
+    video.style.objectPosition = next.position || 'center';
     try{ await video.play(); }catch(e){}
     noiseCanvas.style.opacity = '0.04';
     statusEl.textContent = 'playing';
@@ -1186,13 +1413,75 @@
   }
 
   function updateNowPlaying(clip){
-    if(!clip){ nowPlayingEl.innerHTML = ''; return; }
+    currentClip = clip;
+    if(!clip){
+      nowPlayingEl.innerHTML = '';
+      thumbsUp.disabled = true;
+      thumbsDown.disabled = true;
+      thumbsUp.classList.remove('voted');
+      thumbsDown.classList.remove('voted');
+      voteStatus.textContent = '';
+      return;
+    }
     const label = escapeHtml(clip.title || clip.credit || 'Unknown source');
     const link = clip.sourceUrl
       ? `<a href="${escapeHtml(clip.sourceUrl)}" target="_blank" rel="noopener">view source ↗</a>`
       : '';
-    nowPlayingEl.innerHTML = `now playing: <span class="np-credit">${label}</span>${link}`;
+    const adBadge = clip.type === 'ad' ? '<span class="ad-badge">AD</span> ' : '';
+    nowPlayingEl.innerHTML = `${adBadge}now playing: <span class="np-credit">${label}</span>${link}`;
+    refreshVoteButtons();
   }
+
+  function getVotedMap(){
+    try{ return JSON.parse(localStorage.getItem('deadair_votes') || '{}'); }
+    catch(e){ return {}; }
+  }
+
+  function refreshVoteButtons(){
+    const votes = getVotedMap();
+    const existing = currentClip ? votes[currentClip.id] : null;
+    thumbsUp.disabled = !currentClip || !!existing;
+    thumbsDown.disabled = !currentClip || !!existing;
+    thumbsUp.classList.toggle('voted', existing === 'up');
+    thumbsDown.classList.toggle('voted', existing === 'down');
+    voteStatus.textContent = existing ? 'Thanks for voting!' : '';
+  }
+
+  // Votes go to their own isolated Google Sheet — separate from suggestions
+  // and the live manifest. Replace with your own Apps Script Web App URL.
+  const VOTE_WEBAPP_URL = 'https://script.google.com/macros/s/REPLACE_WITH_YOUR_VOTES_WEBAPP_URL/exec';
+
+  async function sendVote(direction){
+    if(!currentClip) return;
+    const votes = getVotedMap();
+    if(votes[currentClip.id]) return; // already voted on this clip from this browser
+
+    thumbsUp.disabled = true;
+    thumbsDown.disabled = true;
+
+    try{
+      await fetch(VOTE_WEBAPP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          id: currentClip.id,
+          title: currentClip.title,
+          sourceUrl: currentClip.sourceUrl,
+          vote: direction
+        })
+      });
+      votes[currentClip.id] = direction;
+      localStorage.setItem('deadair_votes', JSON.stringify(votes));
+    } catch(err){
+      voteStatus.textContent = 'Vote failed — try again later.';
+    }
+    refreshVoteButtons();
+  }
+
+  thumbsUp.addEventListener('click', () => sendVote('up'));
+  thumbsDown.addEventListener('click', () => sendVote('down'));
+
 
   video.addEventListener('ended', () => { turnChannelKnob(); transitionToNext(); });
 
@@ -1311,6 +1600,7 @@
     video.style.filter = vibeFilters[mode];
     Object.entries(vibeButtons).forEach(([k, btn]) => btn.classList.toggle('active', k === mode));
     refillBag();
+    refillAdBag();
     clipcountEl.textContent = `${String(clipsPlayedThisPass).padStart(2,'0')}/${String(filteredLibrary().length).padStart(2,'0')}`;
     renderSources(sourceSearch.value);
   }
@@ -1334,13 +1624,67 @@
     if(runtimeTimer) return;
     runtimeTimer = setInterval(() => {
       runtimeSeconds++;
+      pendingWatchSeconds++;
       const m = String(Math.floor(runtimeSeconds/60)).padStart(2,'0');
       const s = String(runtimeSeconds%60).padStart(2,'0');
       runtimeEl.textContent = `${m}:${s}`;
       tickTimestamp();
+      if(pendingWatchSeconds >= 30) flushWatchTime();
     }, 1000);
   }
-  function stopRuntime(){ clearInterval(runtimeTimer); runtimeTimer = null; }
+  function stopRuntime(){ clearInterval(runtimeTimer); runtimeTimer = null; flushWatchTime(); }
+
+  // ---------- site-wide watch time tracking ----------
+  // Reporting goes through an Apps Script Web App (fire-and-forget, no response needed).
+  // Reading the running total back goes through a small CORS-proxy Worker, same pattern
+  // as MANIFEST_URL above, since Apps Script's GET responses don't include CORS headers.
+  const WATCHTIME_REPORT_URL = 'https://script.google.com/macros/s/REPLACE_WITH_YOUR_WATCHTIME_WEBAPP_URL/exec';
+  const WATCHTIME_TOTAL_URL = 'https://REPLACE_WITH_YOUR_WATCHTIME_PROXY.workers.dev/';
+
+  let pendingWatchSeconds = 0;
+  let displayedTotalSeconds = null;
+
+  function flushWatchTime(){
+    if(pendingWatchSeconds <= 0) return;
+    const seconds = pendingWatchSeconds;
+    pendingWatchSeconds = 0;
+    try{
+      navigator.sendBeacon(WATCHTIME_REPORT_URL, JSON.stringify({ seconds }));
+    } catch(e){ /* ignore — best effort */ }
+    if(displayedTotalSeconds !== null){
+      displayedTotalSeconds += seconds;
+      renderTotalWatchTime();
+    }
+  }
+
+  function formatDuration(totalSeconds){
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    if(days > 0) return `${days}d ${hours}h`;
+    if(hours > 0) return `${hours}h ${mins}m`;
+    return `${mins}m`;
+  }
+
+  function renderTotalWatchTime(){
+    if(displayedTotalSeconds === null || !totalWatchEl) return;
+    totalWatchEl.textContent = formatDuration(displayedTotalSeconds);
+  }
+
+  async function loadTotalWatchTime(){
+    try{
+      const res = await fetch(WATCHTIME_TOTAL_URL, { cache: 'no-store' });
+      const data = await res.json();
+      displayedTotalSeconds = Number(data.totalSeconds) || 0;
+      renderTotalWatchTime();
+    } catch(e){
+      if(totalWatchEl) totalWatchEl.textContent = 'unavailable';
+    }
+  }
+  loadTotalWatchTime();
+
+  window.addEventListener('pagehide', flushWatchTime);
+  document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') flushWatchTime(); });
 
   function seedTimestamp(){
     renderTimestamp();
