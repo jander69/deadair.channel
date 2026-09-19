@@ -869,6 +869,7 @@
 
           <div class="interstitial" id="interstitial">
             <img class="off-air-logo hidden" id="offAirLogo" alt="Off air">
+            <img class="off-air-logo hidden" id="testPatternImg" src="test-pattern.png" alt="Test pattern">
             <div class="bars" id="barsScreen">
               <div class="b1"></div><div class="b2"></div><div class="b3"></div><div class="b4"></div><div class="b5"></div><div class="b6"></div><div class="b7"></div>
             </div>
@@ -987,6 +988,7 @@
       <p class="sources-note">Every clip in the shuffle is listed below with a link back to where it came from. If something here is yours and you'd like it taken down, email <a href="mailto:removals@deadair.channel">removals@deadair.channel</a> with the title or ID and it'll come down.</p>
       <input type="text" class="sources-search" id="sourceSearch" placeholder="search title or creator...">
       <div class="sources-list" id="sourcesList"></div>
+      <p class="sources-note">Site credits: the dead-channel test pattern was generated with <a href="https://vayce.app/tools/test-pattern-generator/" target="_blank" rel="noopener">vayce.app's test pattern generator</a>. Manifest parsing runs on <a href="https://www.papaparse.com/" target="_blank" rel="noopener">Papa Parse</a> (MIT License).</p>
     </div>
   </div>
 
@@ -1028,15 +1030,23 @@
   const interstitialEl = document.getElementById('interstitial');
   const barsScreen = document.getElementById('barsScreen');
   const offAirLogo = document.getElementById('offAirLogo');
+  const testPatternImg = document.getElementById('testPatternImg');
 
   // Set this once you have your off-air card ready (e.g. from your R2 bucket).
   // Leave blank to keep the default SMPTE color-bars screen.
   const OFF_AIR_LOGO_URL = '';
+  let offAirLogoActive = false;
   if(OFF_AIR_LOGO_URL){
     offAirLogo.src = OFF_AIR_LOGO_URL;
-    offAirLogo.onload = () => { offAirLogo.classList.remove('hidden'); barsScreen.classList.add('hidden'); };
-    offAirLogo.onerror = () => { offAirLogo.classList.add('hidden'); barsScreen.classList.remove('hidden'); };
+    offAirLogo.onload = () => { offAirLogoActive = true; };
+    offAirLogo.onerror = () => { offAirLogoActive = false; };
   }
+
+  // A real broadcast test pattern, shown occasionally instead of the CSS color
+  // bars during a regular dead-channel drop (never during a station break —
+  // that stays reserved for the guaranteed ad bumper / off-air logo).
+  // Generated with vayce.app's test pattern generator: https://vayce.app/tools/test-pattern-generator/
+  const TEST_PATTERN_CHANCE = 0.35;
   const timestampEl = document.getElementById('timestamp');
   const tsText = document.getElementById('tsText');
   const sfxToggle = document.getElementById('sfxToggle');
@@ -1388,6 +1398,11 @@
     await wait(staticMs);
 
     if(doInterstitial){
+      const useTestPattern = !offAirLogoActive && !playingAd && Math.random() < TEST_PATTERN_CHANCE;
+      offAirLogo.classList.toggle('hidden', !offAirLogoActive);
+      testPatternImg.classList.toggle('hidden', !useTestPattern);
+      barsScreen.classList.toggle('hidden', offAirLogoActive || useTestPattern);
+
       standbyText.textContent = playingAd ? 'STATION BREAK' : 'PLEASE STAND BY';
       interstitialEl.classList.add('show');
       noiseCanvas.style.opacity = '0.06';
