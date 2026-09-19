@@ -124,6 +124,32 @@
     padding: 8px;
   }
 
+  .jump-number-row{
+    width: 400px;
+    display:flex;
+    gap: 8px;
+  }
+  .jump-number-row input{
+    flex:1;
+    min-width: 0;
+    background: var(--panel);
+    border: 1px solid #333;
+    color: var(--ink);
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+    padding: 8px;
+  }
+  .jump-number-row button{
+    background: #0d0d0d;
+    border: 1px solid #333;
+    color: var(--ink);
+    padding: 8px 14px;
+    cursor:pointer;
+    font-family:'Space Mono', monospace;
+    font-size: 12px;
+  }
+  .jump-number-row button:hover{ border-color: var(--accent); color: var(--accent); }
+
   .controls-col{
     width: 320px;
     display:flex;
@@ -213,7 +239,7 @@
     font-size: 12px;
   }
 
-  .flag-row{ margin-top: 10px; }
+  .flag-row{ margin-top: 10px; display:flex; flex-direction:column; gap: 8px; }
   .flag-btn{
     width:100%;
     background: #0d0d0d;
@@ -225,6 +251,18 @@
     font-size: 11px;
   }
   .flag-btn.flagged{ border-color: var(--amber); color: var(--amber); }
+  .next-flag-btn{
+    width:100%;
+    background: #0d0d0d;
+    border: 1px solid #333;
+    color: var(--dim);
+    padding: 8px;
+    cursor:pointer;
+    font-family:'Space Mono', monospace;
+    font-size: 11px;
+  }
+  .next-flag-btn:hover{ border-color: var(--amber); color: var(--amber); }
+  .next-flag-btn:disabled{ opacity:0.3; cursor:not-allowed; }
 </style>
 </head>
 <body>
@@ -253,6 +291,11 @@
 
       <div class="jump-row">
         <select id="jumpSelect"><option>Loading…</option></select>
+      </div>
+
+      <div class="jump-number-row">
+        <input type="number" id="jumpNumberInput" placeholder="Go to clip #" min="1">
+        <button id="jumpNumberBtn">Go</button>
       </div>
     </div>
 
@@ -288,9 +331,10 @@
         <div class="row"><span class="k">id</span><span class="v" id="outId">—</span></div>
         <div class="row"><span class="k">fit</span><span class="v" id="outFit">cover</span></div>
         <div class="row"><span class="k">position</span><span class="v" id="outPosition">50% 50%</span></div>
-        <button class="copy-btn" id="copyBtn">Copy id + fit + position</button>
+        <button class="copy-btn" id="copyBtn">Copy fit + position</button>
         <div class="flag-row">
           <button class="flag-btn" id="flagBtn">Mark this clip as needing a fix</button>
+          <button class="next-flag-btn" id="nextFlagBtn" disabled>Next flagged clip (0)</button>
         </div>
       </div>
     </div>
@@ -311,6 +355,8 @@
   const clipTitle = document.getElementById('clipTitle');
   const clipCredit = document.getElementById('clipCredit');
   const jumpSelect = document.getElementById('jumpSelect');
+  const jumpNumberInput = document.getElementById('jumpNumberInput');
+  const jumpNumberBtn = document.getElementById('jumpNumberBtn');
   const fitCover = document.getElementById('fitCover');
   const fitContain = document.getElementById('fitContain');
   const xSlider = document.getElementById('xSlider');
@@ -323,11 +369,46 @@
   const positionGroup = document.getElementById('positionGroup');
   const copyBtn = document.getElementById('copyBtn');
   const flagBtn = document.getElementById('flagBtn');
+  const nextFlagBtn = document.getElementById('nextFlagBtn');
+
+  const FLAG_STORAGE_KEY = 'deadair_crop_flags';
 
   let clips = [];
   let index = 0;
   let fit = 'cover';
-  const flagged = new Set();
+  const flagged = loadFlags();
+
+  function loadFlags(){
+    try{
+      const raw = localStorage.getItem(FLAG_STORAGE_KEY);
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch(err){
+      return new Set();
+    }
+  }
+
+  function saveFlags(){
+    try{
+      localStorage.setItem(FLAG_STORAGE_KEY, JSON.stringify([...flagged]));
+    } catch(err){ /* localStorage unavailable — flags just won't persist */ }
+  }
+
+  function isCropped(clip){
+    return clip.fit === 'contain' || clip.position !== '50% 50%';
+  }
+
+  function updateNextFlagBtn(){
+    nextFlagBtn.textContent = `Next flagged clip (${flagged.size})`;
+    nextFlagBtn.disabled = flagged.size === 0;
+  }
+
+  function renderJumpOptions(){
+    jumpSelect.innerHTML = clips.map((c, i) => {
+      const marks = `${flagged.has(c.id) ? '⚑ ' : ''}${isCropped(c) ? '✓ ' : ''}`;
+      return `<option value="${i}">${marks}${escapeHtml(c.title)}</option>`;
+    }).join('');
+    jumpSelect.value = index;
+  }
 
   function normalizeRow(row){
     const norm = {};
@@ -353,7 +434,8 @@
         position: r.position || '50% 50%'
       }));
 
-      jumpSelect.innerHTML = clips.map((c, i) => `<option value="${i}">${escapeHtml(c.title)}</option>`).join('');
+      renderJumpOptions();
+      updateNextFlagBtn();
       statusBar.textContent = `${clips.length} clips loaded from manifest`;
       prevBtn.disabled = false;
       nextBtn.disabled = false;
@@ -382,6 +464,7 @@
     clipCredit.textContent = clip.credit;
     navCounter.textContent = `${index + 1}/${clips.length}`;
     jumpSelect.value = index;
+    jumpNumberInput.value = index + 1;
     outId.textContent = clip.id;
 
     fit = clip.fit === 'contain' ? 'contain' : 'cover';
@@ -406,11 +489,32 @@
     outFit.textContent = fit;
     outPosition.textContent = `${xSlider.value}% ${ySlider.value}%`;
     positionGroup.style.opacity = fit === 'cover' ? '1' : '0.4';
+
+    // Keep the in-memory clip + dropdown marker in sync with the live controls
+    // so "already cropped" reflects edits made in this session, not just the manifest.
+    if(clips[index]){
+      clips[index].fit = fit;
+      clips[index].position = `${xSlider.value}% ${ySlider.value}%`;
+      renderJumpOptions();
+    }
   }
 
   prevBtn.addEventListener('click', () => goTo(index - 1));
   nextBtn.addEventListener('click', () => goTo(index + 1));
   jumpSelect.addEventListener('change', () => goTo(parseInt(jumpSelect.value)));
+
+  function jumpToNumber(){
+    const n = parseInt(jumpNumberInput.value, 10);
+    if(!n || n < 1 || n > clips.length){
+      jumpNumberInput.value = index + 1;
+      return;
+    }
+    goTo(n - 1);
+  }
+  jumpNumberBtn.addEventListener('click', jumpToNumber);
+  jumpNumberInput.addEventListener('keydown', e => {
+    if(e.key === 'Enter') jumpToNumber();
+  });
 
   fitCover.addEventListener('click', () => { fit = 'cover'; fitCover.classList.add('active'); fitContain.classList.remove('active'); applyStyles(); });
   fitContain.addEventListener('click', () => { fit = 'contain'; fitContain.classList.add('active'); fitCover.classList.remove('active'); applyStyles(); });
@@ -434,11 +538,10 @@
   });
 
   copyBtn.addEventListener('click', () => {
-    const clip = clips[index];
-    const text = `${clip.id}\t${fit}\t${xSlider.value}% ${ySlider.value}%`;
+    const text = `${fit}\t${xSlider.value}% ${ySlider.value}%`;
     navigator.clipboard.writeText(text).then(() => {
       copyBtn.textContent = 'Copied!';
-      setTimeout(() => copyBtn.textContent = 'Copy id + fit + position', 1200);
+      setTimeout(() => copyBtn.textContent = 'Copy fit + position', 1200);
     });
   });
 
@@ -447,6 +550,21 @@
     if(flagged.has(id)) flagged.delete(id); else flagged.add(id);
     flagBtn.classList.toggle('flagged', flagged.has(id));
     flagBtn.textContent = flagged.has(id) ? 'Flagged — click to unflag' : 'Mark this clip as needing a fix';
+    saveFlags();
+    updateNextFlagBtn();
+    renderJumpOptions();
+  });
+
+  nextFlagBtn.addEventListener('click', () => {
+    if(flagged.size === 0) return;
+    // Search forward from the clip after the current one, wrapping around.
+    for(let step = 1; step <= clips.length; step++){
+      const i = (index + step) % clips.length;
+      if(flagged.has(clips[i].id)){
+        goTo(i);
+        return;
+      }
+    }
   });
 
   document.addEventListener('keydown', e => {
