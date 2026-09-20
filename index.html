@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dead Air Channel</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo:wght@500;700&family=VT323&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo:wght@500;700&family=VT323&family=Anton&display=swap');
 
   :root{
     --bg: #050505;
@@ -60,87 +60,103 @@
     display:none;
   }
 
-  .dot-logo{
+  .chyron-logo{
     display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap: 6px;
-    margin-bottom: 8px;
+    flex-direction:row;
+    flex-wrap: nowrap;
+    align-items:baseline;
+    justify-content:center;
+    gap: 4px;
+    margin-bottom: 10px;
+    font-family: 'VT323', monospace;
+    text-transform: uppercase;
+    line-height: 1;
+    white-space: nowrap;
+    max-width: 100%;
   }
 
-  .dot-word{
-    --dot-size: clamp(3px, 0.85vw, 5.5px);
-    --dot-gap: calc(var(--dot-size) * 0.35);
-    display:flex;
-    gap: calc(var(--dot-size) * 1.1);
+  .chyron-primary{
+    position: relative;
+    display: inline-block;
+    font-size: clamp(28px, 8vw, 58px);
+    color: #4dff6e;
+    -webkit-text-stroke: 1px #000;
+    text-shadow: 2px 2px 0 #000, 0 0 14px rgba(77,255,110,0.6);
+    letter-spacing: 1px;
+    animation: chyronFlicker 6.2s steps(1) infinite, chyronJitter 4.4s steps(1) infinite;
   }
 
-  .dot-letter{
-    display:grid;
-    grid-template-columns: repeat(5, var(--dot-size));
-    grid-template-rows: repeat(7, var(--dot-size));
-    gap: var(--dot-gap);
+  .chyron-secondary{
+    position: relative;
+    display: inline-block;
+    font-size: clamp(22px, 6vw, 44px);
+    color: #4dff6e;
+    -webkit-text-stroke: 1px #000;
+    text-shadow: 2px 2px 0 #000, 0 0 12px rgba(77,255,110,0.55);
+    letter-spacing: 1px;
+    animation: chyronFlicker 7.6s steps(1) infinite 0.6s, chyronJitter 6.7s steps(1) infinite 1.1s;
   }
 
-  .dot{
-    width: var(--dot-size);
-    height: var(--dot-size);
-    border-radius: 1px;
+  @keyframes chyronFlicker{
+    0%, 91%, 100% { opacity: 1; }
+    92%, 95% { opacity: 0.5; }
   }
 
-  .dot.off{
-    background: rgba(255,45,85,0.08);
+  /* channel-flip / signal-drop glitch: brief tracking-tear jump-cuts, like
+     tuning between stations. Mostly invisible (clipped to nothing); every
+     few seconds it snaps into a torn, offset double-image slice for one
+     frame, steps(1) so it reads as a discrete cut rather than a smooth
+     wobble. Kept monochrome (same white as the logo) so it stays looking
+     like real VCR text glitching, not a colored TV-static effect. */
+  @keyframes chyronJitter{
+    0%, 88%, 100% { transform: translate(0,0) skewX(0deg); opacity: 1; }
+    89% { transform: translate(-3px, 1px) skewX(-2deg); opacity: 0.2; }
+    90% { transform: translate(2px, -2px) skewX(1deg); opacity: 0.9; }
+    91% { transform: translate(-1px, 1px) skewX(0deg); opacity: 0.1; }
+    92% { transform: translate(0,0) skewX(0deg); opacity: 1; }
   }
 
-  .dot.on{
-    background: var(--glitch-a);
-    box-shadow: 0 0 4px rgba(255,45,85,0.75), 0 0 8px rgba(255,45,85,0.4);
+  .chyron-primary::before,
+  .chyron-primary::after,
+  .chyron-secondary::before,
+  .chyron-secondary::after{
+    content: attr(data-text);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    -webkit-text-stroke: inherit;
+    text-shadow: none;
+    mix-blend-mode: normal;
+    color: #4dff6e;
+    opacity: 0;
+    pointer-events: none;
+    clip-path: inset(0 0 100% 0);
   }
 
-  .dot.flicker-on{
-    animation-name: flickerOnPrimary;
-    animation-timing-function: steps(1);
-    animation-iteration-count: infinite;
+  .chyron-primary::before,
+  .chyron-secondary::before{
+    animation: glitchSliceA 4.4s steps(1) infinite;
   }
-  @keyframes flickerOnPrimary{
-    0%, 88%, 100% { background: var(--glitch-a); box-shadow: 0 0 4px rgba(255,45,85,0.75), 0 0 8px rgba(255,45,85,0.4); }
-    91%, 96% { background: rgba(255,45,85,0.08); box-shadow: none; }
+  .chyron-primary::after,
+  .chyron-secondary::after{
+    animation: glitchSliceB 5.1s steps(1) infinite 0.3s;
   }
-  .dot.flicker-off{
-    animation-name: flickerOffPrimary;
-    animation-timing-function: steps(1);
-    animation-iteration-count: infinite;
-  }
-  @keyframes flickerOffPrimary{
-    0%, 88%, 100% { background: rgba(255,45,85,0.08); box-shadow: none; }
-    91%, 96% { background: var(--glitch-a); box-shadow: 0 0 4px rgba(255,45,85,0.75), 0 0 8px rgba(255,45,85,0.4); }
+  .chyron-secondary::before{ animation-name: glitchSliceA; animation-duration: 6.7s; animation-delay: 1.1s; }
+  .chyron-secondary::after{ animation-name: glitchSliceB; animation-duration: 5.9s; animation-delay: 2.4s; }
+
+  @keyframes glitchSliceA{
+    0%, 89%, 100% { opacity: 0; transform: translate(0,0); clip-path: inset(0 0 100% 0); }
+    90% { opacity: 0.85; transform: translate(-4px, 1px); clip-path: inset(8% 0 62% 0); }
+    91% { opacity: 0.85; transform: translate(3px, -1px); clip-path: inset(48% 0 18% 0); }
+    92% { opacity: 0; transform: translate(0,0); clip-path: inset(0 0 100% 0); }
   }
 
-  .dot-word.secondary{ --dot-size: clamp(2.5px, 0.65vw, 4px); }
-  .dot-word.secondary .dot.on{
-    background: var(--amber);
-    box-shadow: 0 0 4px rgba(242,193,78,0.75), 0 0 8px rgba(242,193,78,0.4);
-  }
-  .dot-word.secondary .dot.off{
-    background: rgba(242,193,78,0.08);
-  }
-  .dot-word.secondary .dot.flicker-on{
-    animation-name: flickerOnSecondary;
-    animation-timing-function: steps(1);
-    animation-iteration-count: infinite;
-  }
-  @keyframes flickerOnSecondary{
-    0%, 88%, 100% { background: var(--amber); box-shadow: 0 0 4px rgba(242,193,78,0.75), 0 0 8px rgba(242,193,78,0.4); }
-    91%, 96% { background: rgba(242,193,78,0.08); box-shadow: none; }
-  }
-  .dot-word.secondary .dot.flicker-off{
-    animation-name: flickerOffSecondary;
-    animation-timing-function: steps(1);
-    animation-iteration-count: infinite;
-  }
-  @keyframes flickerOffSecondary{
-    0%, 88%, 100% { background: rgba(242,193,78,0.08); box-shadow: none; }
-    91%, 96% { background: var(--amber); box-shadow: 0 0 4px rgba(242,193,78,0.75), 0 0 8px rgba(242,193,78,0.4); }
+  @keyframes glitchSliceB{
+    0%, 84%, 100% { opacity: 0; transform: translate(0,0); clip-path: inset(0 0 100% 0); }
+    85% { opacity: 0.85; transform: translate(4px, -2px); clip-path: inset(62% 0 6% 0); }
+    86% { opacity: 0.85; transform: translate(-3px, 2px); clip-path: inset(18% 0 58% 0); }
+    87% { opacity: 0; transform: translate(0,0); clip-path: inset(0 0 100% 0); }
   }
 
   .sub{
@@ -839,9 +855,9 @@
 <body>
 
   <div class="eyebrow">3:14 am / no one else is watching this</div>
-  <div class="dot-logo">
-    <div class="dot-word"><div class="dot-letter"><span class="dot on"></span><span class="dot on flicker-on" style="animation-delay:2.48s;animation-duration:5.12s"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot on flicker-on" style="animation-delay:3.8s;animation-duration:4.15s"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off flicker-off" style="animation-delay:1.79s;animation-duration:7.25s"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off flicker-off" style="animation-delay:7.25s;animation-duration:7.49s"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on flicker-on" style="animation-delay:7.63s;animation-duration:7.02s"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on flicker-on" style="animation-delay:2.05s;animation-duration:5.45s"></span><span class="dot on flicker-on" style="animation-delay:2.1s;animation-duration:4.51s"></span><span class="dot on"></span><span class="dot off"></span></div><div class="dot-letter"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on flicker-on" style="animation-delay:2.84s;animation-duration:5.34s"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div><div class="dot-letter"><span class="dot off"></span><span class="dot on"></span><span class="dot on flicker-on" style="animation-delay:0.42s;animation-duration:4.55s"></span><span class="dot on"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off flicker-off" style="animation-delay:6.49s;animation-duration:7.41s"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on flicker-on" style="animation-delay:3.91s;animation-duration:6.27s"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off flicker-off" style="animation-delay:2.92s;animation-duration:4.1s"></span><span class="dot off"></span><span class="dot on"></span></div><div class="dot-letter"><span class="dot on"></span><span class="dot on"></span><span class="dot on flicker-on" style="animation-delay:7.9s;animation-duration:8.73s"></span><span class="dot on flicker-on" style="animation-delay:4.37s;animation-duration:4.35s"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on flicker-on" style="animation-delay:2.14s;animation-duration:7.34s"></span><span class="dot on"></span><span class="dot off"></span></div><div class="dot-letter"><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span></div><div class="dot-letter"><span class="dot on"></span><span class="dot on"></span><span class="dot on flicker-on" style="animation-delay:3.41s;animation-duration:8.93s"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on flicker-on" style="animation-delay:5.26s;animation-duration:6.51s"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div><div class="dot-letter"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on flicker-on" style="animation-delay:7.35s;animation-duration:5.5s"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot on flicker-on" style="animation-delay:4.98s;animation-duration:5.36s"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span></div></div>
-    <div class="dot-word secondary"><div class="dot-letter"><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on flicker-on" style="animation-delay:3.81s;animation-duration:5.38s"></span><span class="dot on flicker-on" style="animation-delay:6.94s;animation-duration:7.19s"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on flicker-on" style="animation-delay:0.68s;animation-duration:8.42s"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div><div class="dot-letter"><span class="dot on flicker-on" style="animation-delay:6.63s;animation-duration:5.66s"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on flicker-on" style="animation-delay:1.74s;animation-duration:5.64s"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on flicker-on" style="animation-delay:8.73s;animation-duration:4.89s"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span></div><div class="dot-letter"><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on flicker-on" style="animation-delay:8.33s;animation-duration:6.69s"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off flicker-off" style="animation-delay:2.58s;animation-duration:6.15s"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span></div><div class="dot-letter"><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off flicker-off" style="animation-delay:2.2s;animation-duration:6.38s"></span><span class="dot on"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off flicker-off" style="animation-delay:6.76s;animation-duration:7.85s"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span></div><div class="dot-letter"><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span></div><div class="dot-letter"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on flicker-on" style="animation-delay:3.17s;animation-duration:7.77s"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off flicker-off" style="animation-delay:3.03s;animation-duration:7.4s"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot off flicker-off" style="animation-delay:3.55s;animation-duration:6.82s"></span><span class="dot on flicker-on" style="animation-delay:5.78s;animation-duration:4.68s"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on flicker-on" style="animation-delay:0.17s;animation-duration:6.7s"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div><div class="dot-letter"><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on flicker-on" style="animation-delay:1.37s;animation-duration:4.63s"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off flicker-off" style="animation-delay:2.81s;animation-duration:7.39s"></span><span class="dot off"></span><span class="dot on"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on flicker-on" style="animation-delay:6.95s;animation-duration:8.25s"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot off"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div></div>
+  <div class="chyron-logo">
+    <span class="chyron-primary" data-text="DEADAIR">DEADAIR</span>
+    <span class="chyron-secondary" data-text=".CHANNEL">.CHANNEL</span>
   </div>
   <div class="controls">
     <span class="toggle-label">Cabinet:</span>
